@@ -1,13 +1,58 @@
 // Netlify Function: ai-insight
 // -------------------------------------------------------------
 // Receives ALREADY-COMPUTED numbers (weighted scores, bias hits,
-// Monte Carlo win probabilities) and asks Gemini to narrate them
+// Monte Carlo win probabilities) and asks an LLM to narrate them
 // into the report's prose sections. It is never given raw scoring
 // authority — the JSON schema below is the contract that keeps it
 // that way: every number in the response must come from the input.
+//
+// Provider fallback: tries Gemini first; if Gemini errors out
+// (quota exceeded, 5xx, network failure), falls back to Groq
+// automatically. Only if BOTH fail does the function return an
+// error — the frontend already handles that gracefully by
+// rendering the report with computed numbers and no AI prose.
 
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_MODEL = "llama-3.3-70b-versatile";
+
+async function callGemini(prompt, apiKey) {
+  const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.6, responseMimeType: "application/json" },
+    }),
+  });
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) throw new Error("Gemini returned no content");
+  return text;
+}
+
+async function callGroq(prompt, apiKey) {
+  const res = await fetch(GROQ_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      temperature: 0.6,
+      response_format: { type: "json_object" },
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) throw new Error("Groq returned no content");
+  return text;
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -31,9 +76,10 @@ exports.handler = async (event) => {
     simulation,          // output of monteCarloSensitivity()
   } = payload;
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return { statusCode: 500, body: "Server not configured (missing GEMINI_API_KEY)" };
+  const geminiKey = process.env.GEMINI_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
+  if (!geminiKey && !groqKey) {
+    return { statusCode: 500, body: "Server not configured (missing GEMINI_API_KEY and GROQ_API_KEY)" };
   }
 
   const prompt = `
@@ -84,31 +130,39 @@ Return ONLY valid JSON, no markdown fences, matching exactly this schema:
   "linkedin_caption": "3 lines max"
 }`.trim();
 
-  try {
-    const res = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.6, responseMimeType: "application/json" },
-      }),
-    });
+  let rawText = null;
+  let providerUsed = null;
+  let lastError = null;
 
-    if (!res.ok) {
-      const errText = await res.text();
-      return { statusCode: 502, body: `Gemini error: ${errText}` };
+  if (geminiKey) {
+    try {
+      rawText = await callGemini(prompt, geminiKey);
+      providerUsed = "gemini";
+    } catch (err) {
+      lastError = err;
+      console.warn("Gemini failed, falling back to Groq:", err.message);
     }
-
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "{}";
-    const cleaned = text.replace(/```json|```/g, "").trim();
-
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: cleaned,
-    };
-  } catch (err) {
-    return { statusCode: 500, body: `Function error: ${err.message}` };
   }
+
+  if (!rawText && groqKey) {
+    try {
+      rawText = await callGroq(prompt, groqKey);
+      providerUsed = "groq";
+    } catch (err) {
+      lastError = err;
+      console.warn("Groq also failed:", err.message);
+    }
+  }
+
+  if (!rawText) {
+    return { statusCode: 502, body: `Both providers failed. Last error: ${lastError?.message}` };
+  }
+
+  const cleaned = rawText.replace(/```json|```/g, "").trim();
+
+  return {
+    statusCode: 200,
+    headers: { "Content-Type": "application/json", "X-AI-Provider": providerUsed },
+    body: cleaned,
+  };
 };
