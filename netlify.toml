@@ -1,0 +1,7 @@
+[build]
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/ai-insight"
+  to = "/.netlify/functions/ai-insight"
+  status = 200

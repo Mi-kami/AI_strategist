@@ -3,129 +3,634 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>The Profile Roast — LinkedIn Optimization</title>
-<meta name="description" content="Paste your LinkedIn content. Get an honest, specific roast, a full rewrite, keyword and text-quality scoring, and a 7-day activation plan." />
-<link rel="stylesheet" href="style.css" />
+<title>Decision Report — a decision engine, not a coin flip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-main: #0f0f14;
+    --bg-card: #1a1a24;
+    --bg-card-alt: #1e1e2e;
+    --text-primary: #f0f0f5;
+    --text-secondary: #8888a0;
+    --accent-green: #34d399;
+    --accent-red: #f87171;
+    --accent-blue: #60a5fa;
+    --accent-gold: #fbbf24;
+    --accent-purple: #a78bfa;
+    --border-subtle: rgba(255,255,255,0.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ---------- animated background blobs ---------- */
+  .blob-field { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+  .blob {
+    position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.28;
+    animation: drift 22s ease-in-out infinite alternate;
+  }
+  .blob1 { width: 380px; height: 380px; background: var(--accent-blue); top: -80px; left: -100px; animation-duration: 26s; }
+  .blob2 { width: 420px; height: 420px; background: var(--accent-purple); bottom: -120px; right: -120px; animation-duration: 30s; animation-delay: -6s; }
+  .blob3 { width: 300px; height: 300px; background: var(--accent-gold); top: 40%; left: 60%; animation-duration: 20s; animation-delay: -12s; opacity: 0.16; }
+  @keyframes drift {
+    0%   { transform: translate(0,0) scale(1); }
+    50%  { transform: translate(40px,-30px) scale(1.15); }
+    100% { transform: translate(-30px,20px) scale(0.95); }
+  }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; position: relative; z-index: 1; }
+  h1, h2, h3 { font-family: 'Space Grotesk', 'Inter', sans-serif; }
+
+  /* ---------- header ---------- */
+  .banner { text-align: center; padding: 40px 0 24px; }
+  .banner .kicker {
+    font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent-blue); font-weight: 600; margin-bottom: 10px;
+  }
+  .banner h1 {
+    font-size: 32px; font-weight: 800; margin: 0 0 8px;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-gold));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    background-size: 200% auto; animation: shimmer 6s linear infinite;
+  }
+  @keyframes shimmer { to { background-position: 200% center; } }
+  .banner p { color: var(--text-secondary); font-size: 15px; margin: 0; }
+  .gradient-rule {
+    height: 2px; margin: 24px 0 0;
+    background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-gold));
+    border-radius: 2px;
+  }
+
+  /* ---------- mascot ---------- */
+  .mascot-dock { display: flex; align-items: center; gap: 16px; justify-content: center; margin-bottom: 18px; }
+  .mascot { width: 76px; height: 76px; flex-shrink: 0; animation: float 3.4s ease-in-out infinite; }
+  @keyframes float { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-8px) rotate(1deg); } }
+  .mascot .antenna-light { animation: pulse 1.6s ease-in-out infinite; transform-origin: center; }
+  @keyframes pulse { 0%,100% { opacity: 1; r: 4; } 50% { opacity: 0.5; r: 6; } }
+  .mascot .eye { animation: blink 4.5s ease-in-out infinite; transform-origin: center; }
+  @keyframes blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+  .mascot.thinking { animation: floatFast 1.2s ease-in-out infinite; }
+  @keyframes floatFast { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-10px) rotate(2deg); } }
+  .mascot .gear { animation: spin 2.4s linear infinite; transform-origin: 60px 20px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .speech-bubble {
+    position: relative; background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: 14px; padding: 10px 16px; font-size: 13.5px; color: var(--text-primary);
+    max-width: 300px; text-align: left; box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    transition: opacity 0.25s ease;
+  }
+  .speech-bubble::before {
+    content: ''; position: absolute; left: -7px; top: 26px; width: 12px; height: 12px;
+    background: var(--bg-card); border-left: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);
+    transform: rotate(45deg);
+  }
+  @media (max-width: 500px) { .mascot-dock { flex-direction: column; } .speech-bubble::before { display:none; } }
+
+  /* ---------- cards / steps ---------- */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    transition: transform 0.2s ease;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card.accent-blue { border-left: 4px solid var(--accent-blue); }
+  .card.accent-green { border-left: 4px solid var(--accent-green); }
+  .card.accent-purple { border-left: 4px solid var(--accent-purple); }
+  .card.accent-red { border-left: 4px solid var(--accent-red); }
+  .card.accent-gold {
+    border-left: 4px solid var(--accent-gold);
+    background: var(--bg-card-alt);
+    padding: 32px;
+    box-shadow: 0 0 20px rgba(251,191,36,0.15);
+  }
+  .section-title {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1px; margin: 0 0 16px;
+  }
+  .body-text { font-size: 15px; line-height: 1.7; }
+  label.field-label {
+    display:block; font-size: 12px; font-weight:600; letter-spacing: 0.5px;
+    text-transform: uppercase; color: var(--text-secondary); margin: 18px 0 8px;
+  }
+  textarea, input[type=text] {
+    width: 100%; background: #12121a; border: 1px solid var(--border-subtle);
+    color: var(--text-primary); border-radius: 10px; padding: 12px 14px;
+    font-family: inherit; font-size: 14.5px; resize: vertical;
+  }
+  textarea:focus, input:focus { outline: 2px solid var(--accent-blue); }
+  .btn {
+    display: inline-block; margin-top: 20px; padding: 12px 22px;
+    border-radius: 10px; border: none; font-weight: 700; font-size: 14px;
+    cursor: pointer; background: var(--accent-blue); color: #0f0f14;
+    transition: filter 0.15s;
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn.secondary { background: transparent; border: 1px solid var(--border-subtle); color: var(--text-primary); margin-right: 10px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .hint { color: var(--text-secondary); font-size: 12.5px; margin-top: 6px; }
+
+  /* rank list */
+  .rank-list { list-style: none; padding: 0; margin: 0; }
+  .rank-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; margin-bottom: 8px; border-radius: 10px;
+    background: #12121a; border: 1px solid var(--border-subtle);
+    cursor: pointer; font-size: 14.5px; transition: background 0.15s;
+  }
+  .rank-item:hover { background: #17171f; }
+  .rank-item .badge {
+    width: 26px; height: 26px; border-radius: 50%; background: var(--border-subtle);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: var(--text-secondary); flex-shrink: 0;
+  }
+  .rank-item.picked .badge { background: var(--accent-blue); color: #0f0f14; }
+  .rank-item.picked { opacity: 0.55; cursor: default; }
+
+  /* rating rows */
+  .rating-row { margin-bottom: 18px; }
+  .rating-row .rl { display:flex; justify-content:space-between; font-size: 13.5px; margin-bottom:8px;}
+  .rating-row .rl .note { color: var(--text-secondary); font-size: 11.5px; }
+  .rating-scale { display: flex; gap: 6px; flex-wrap: wrap; }
+  .rating-btn {
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border-subtle);
+    background: #12121a; color: var(--text-secondary); font-size: 13px; font-weight: 600;
+    cursor: pointer;
+  }
+  .rating-btn.selected { background: var(--accent-blue); color: #0f0f14; border-color: var(--accent-blue); }
+
+  /* matrix bars */
+  .matrix-row { margin-bottom: 14px; }
+  .matrix-row .mlabel { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display:flex; justify-content:space-between;}
+  .bar-track { height: 26px; background: rgba(255,255,255,0.05); border-radius: 8px; overflow: hidden; display:flex; gap:4px; }
+  .bar-fill {
+    height: 100%; border-radius: 8px; display: flex; align-items: center; justify-content: flex-end;
+    padding-right: 8px; color: white; font-size: 12px; font-weight: 700;
+    width: 0%; animation: growBar 0.8s ease-out forwards;
+  }
+  @keyframes growBar { from { width: 0%; } }
+  .total-row { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-subtle); font-weight: 700; font-size: 15px; }
+
+  /* shareable */
+  .share-row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .mini-card {
+    flex: 1 1 200px; background: var(--bg-card-alt); border-radius: 12px; padding: 16px;
+    border: 1px solid var(--border-subtle); font-size: 13px;
+  }
+  .mini-card .watermark { margin-top: 12px; font-size: 10px; color: var(--text-secondary); }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .footer { text-align: center; color: var(--text-secondary); font-size: 12px; margin-top: 40px; }
+
+  /* ---------- loading spinner ---------- */
+  .think-ring {
+    width: 64px; height: 64px; margin: 10px auto 0; border-radius: 50%;
+    border: 4px solid rgba(251,191,36,0.15); border-top-color: var(--accent-gold);
+    animation: spin 1s linear infinite; position: relative;
+  }
+  .think-ring-inner {
+    position: absolute; inset: 10px; border-radius: 50%;
+    border: 3px solid rgba(96,165,250,0.15); border-bottom-color: var(--accent-blue);
+    animation: spin 0.7s linear infinite reverse;
+  }
+
+  /* ---------- verdict glow ---------- */
+  .verdict-glow {
+    animation: verdictPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes verdictPulse {
+    0%,100% { text-shadow: 0 0 12px rgba(251,191,36,0.35); }
+    50% { text-shadow: 0 0 28px rgba(251,191,36,0.65); }
+  }
+  .dim-icon { margin-right: 6px; }
+
+  @media (max-width: 600px) {
+    .wrap { padding: 20px 16px 60px; }
+    .card { padding: 20px; }
+    .matrix-row .mlabel { flex-direction: column; align-items: flex-start; gap: 4px; }
+  }
+</style>
 </head>
 <body>
+<div class="blob-field">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="blob blob3"></div>
+</div>
+<div class="wrap">
 
-<header class="masthead">
-  <div>
-    <div class="masthead-title">THE PROFILE <span class="strike">ROAST</span></div>
-    <div class="masthead-sub">Honest LinkedIn critique, rebuilt</div>
+  <div class="banner">
+    <div class="kicker">Decision Report</div>
+    <h1>Stop guessing. Start weighing.</h1>
+    <p>A structured decision engine — real scoring, real bias detection, real uncertainty simulation. Not a coin flip with extra steps.</p>
+    <div class="mascot-dock">
+      <svg class="mascot" id="mascotSvg" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+        <line x1="40" y1="8" x2="40" y2="18" stroke="#60a5fa" stroke-width="2.5"/>
+        <circle class="antenna-light" cx="40" cy="7" r="4" fill="var(--accent-gold)"/>
+        <rect x="14" y="18" width="52" height="42" rx="14" fill="#1e1e2e" stroke="#3a3a4e" stroke-width="2"/>
+        <rect x="20" y="26" width="40" height="26" rx="9" fill="#12121a"/>
+        <ellipse class="eye" cx="32" cy="39" rx="4.5" ry="5.5" fill="var(--accent-blue)"/>
+        <ellipse class="eye" cx="48" cy="39" rx="4.5" ry="5.5" fill="var(--accent-blue)"/>
+        <rect x="8" y="34" width="6" height="14" rx="3" fill="#3a3a4e"/>
+        <rect x="66" y="34" width="6" height="14" rx="3" fill="#3a3a4e"/>
+        <path d="M28 66 Q40 74 52 66" stroke="var(--accent-green)" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <g class="gear" style="display:none" id="mascotGear">
+          <circle cx="60" cy="20" r="7" fill="none" stroke="var(--accent-purple)" stroke-width="2.5"/>
+          <line x1="60" y1="10" x2="60" y2="14" stroke="var(--accent-purple)" stroke-width="2.5"/>
+          <line x1="60" y1="26" x2="60" y2="30" stroke="var(--accent-purple)" stroke-width="2.5"/>
+          <line x1="50" y1="20" x2="54" y2="20" stroke="var(--accent-purple)" stroke-width="2.5"/>
+          <line x1="66" y1="20" x2="70" y2="20" stroke="var(--accent-purple)" stroke-width="2.5"/>
+        </g>
+      </svg>
+      <div class="speech-bubble" id="mascotSpeech">Hey — I'm Ledger, your decision co-pilot. Let's get specific about what you're actually choosing between.</div>
+    </div>
+    <div class="gradient-rule"></div>
   </div>
-  <div class="masthead-actions">
-    <button class="icon-btn" id="themeToggle" title="Toggle light/dark">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-    </button>
-    <button class="icon-btn" id="startOverBtn" title="Start over" style="display:none;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
-    </button>
+
+  <!-- STEP 0: context -->
+  <div class="step active" id="step-0">
+    <div class="card accent-blue">
+      <div class="section-title" style="color:var(--accent-blue)">The Decision</div>
+      <label class="field-label">What's the decision you're stuck on?</label>
+      <textarea id="decisionText" rows="3" placeholder="e.g. Stay at my current job vs take the offer from the startup"></textarea>
+      <label class="field-label">Your options (2–4)</label>
+      <div id="optionsWrap"></div>
+      <button class="btn secondary" id="addOption" type="button">+ Add option</button>
+      <div><button class="btn" id="toStep1" type="button">Next</button></div>
+    </div>
   </div>
-</header>
 
-<main>
+  <!-- STEP 1: priority ranking -->
+  <div class="step" id="step-1">
+    <div class="card accent-purple">
+      <div class="section-title" style="color:var(--accent-purple)">Rank What Matters</div>
+      <p class="body-text">Tap in order, most important first. This sets the weights in your scoring model — no made-up numbers.</p>
+      <ul class="rank-list" id="rankList"></ul>
+      <div class="hint" id="rankHint"></div>
+      <div><button class="btn secondary" id="back0" type="button">Back</button><button class="btn" id="toStep2" type="button" disabled>Next</button></div>
+    </div>
+  </div>
 
-  <!-- SCREEN: INTAKE -->
-  <section class="screen active" id="screen-intake">
-    <div class="intake-hero">
-      <div class="kicker">Zero fluff. Zero fabricated achievements.</div>
-      <h1>Your profile is <em>costing</em> you opportunities you'll never even hear about.
-        <svg width="140" height="46" viewBox="0 0 140 46" style="position:absolute; margin-left:8px; margin-top:-8px; pointer-events:none;" aria-hidden="true">
-          <path d="M6 30C24 6 60 2 78 12C96 22 122 18 134 8" fill="none" stroke="#8C1F3B" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
-        </svg>
-      </h1>
-      <p>Paste what you've got. Get told exactly what's wrong, why it's wrong, and a full rewrite — not vague advice.</p>
+  <!-- STEP 2: per-option scoring -->
+  <div class="step" id="step-2">
+    <div class="card accent-green" id="scoringCard">
+      <div class="section-title" style="color:var(--accent-green)">Score Each Option</div>
+      <p class="body-text">Rate each option 1–10 on every dimension. Be honest, not hopeful.</p>
+      <div id="scoringWrap"></div>
+      <div><button class="btn secondary" id="back1" type="button">Back</button><button class="btn" id="toStep3" type="button" disabled>Next</button></div>
+    </div>
+  </div>
+
+  <!-- STEP 3: free text -->
+  <div class="step" id="step-3">
+    <div class="card accent-blue">
+      <div class="section-title" style="color:var(--accent-blue)">A Little More Context</div>
+      <label class="field-label">What's your goal — and your timeline?</label>
+      <textarea id="goalText" rows="2"></textarea>
+      <label class="field-label">What does your gut say — and what's stopping you from going with it?</label>
+      <textarea id="gutText" rows="2"></textarea>
+      <label class="field-label">What's the one thing you're most scared of getting wrong?</label>
+      <textarea id="fearText" rows="2"></textarea>
+      <div><button class="btn secondary" id="back2" type="button">Back</button><button class="btn" id="buildReport" type="button">Build my Decision Report</button></div>
+    </div>
+  </div>
+
+  <!-- STEP 4: loading -->
+  <div class="step" id="step-loading">
+    <div class="card accent-gold" style="text-align:center;">
+      <div class="think-ring"><div class="think-ring-inner"></div></div>
+      <p class="body-text" id="loadingLine" style="margin-top:18px;font-weight:600;">Running the weighted model…</p>
+      <p class="hint">Scanning bias language → simulating 2,000 outcome scenarios</p>
+    </div>
+  </div>
+
+  <!-- STEP 5: report -->
+  <div class="step" id="step-report"></div>
+
+  <div class="footer">Built with Claude AI · ABTalks 60-Day Challenge · Day 45</div>
+</div>
+
+<script type="module">
+import { DIMENSIONS, rocWeights, weightedSum, detectBiases, monteCarloSensitivity } from './scoring-engine.js';
+
+const state = { options: [], rankOrder: [], scores: {}, weights: {} };
+
+// ---------- Step 0: options ----------
+const optionsWrap = document.getElementById('optionsWrap');
+function renderOptionInputs() {
+  optionsWrap.innerHTML = '';
+  const count = Math.max(2, state.optionCount || 2);
+  for (let i = 0; i < count; i++) {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = `Option ${i + 1} name`;
+    input.style.marginBottom = '8px';
+    input.dataset.idx = i;
+    optionsWrap.appendChild(input);
+  }
+}
+state.optionCount = 2;
+renderOptionInputs();
+
+document.getElementById('addOption').addEventListener('click', () => {
+  if (state.optionCount >= 4) return;
+  const vals = [...optionsWrap.querySelectorAll('input')].map(i => i.value);
+  state.optionCount++;
+  renderOptionInputs();
+  [...optionsWrap.querySelectorAll('input')].forEach((el, i) => el.value = vals[i] || '');
+});
+
+document.getElementById('toStep1').addEventListener('click', () => {
+  const decision = document.getElementById('decisionText').value.trim();
+  const opts = [...optionsWrap.querySelectorAll('input')].map(i => i.value.trim()).filter(Boolean);
+  if (!decision || opts.length < 2) { alert('Add a decision and at least 2 options.'); return; }
+  state.decision = decision;
+  state.options = opts;
+  goStep('step-1');
+  renderRankList();
+});
+
+// ---------- Step 1: ranking ----------
+const rankList = document.getElementById('rankList');
+function renderRankList() {
+  rankList.innerHTML = '';
+  state.rankOrder = [];
+  DIMENSIONS.forEach(dim => {
+    const li = document.createElement('li');
+    li.className = 'rank-item';
+    li.dataset.key = dim.key;
+    li.innerHTML = `<span class="badge">–</span><span>${dim.label}${dim.note ? ` <span style="color:var(--text-secondary);font-size:11.5px">(${dim.note})</span>` : ''}</span>`;
+    li.addEventListener('click', () => {
+      if (state.rankOrder.includes(dim.key)) return;
+      state.rankOrder.push(dim.key);
+      li.classList.add('picked');
+      li.querySelector('.badge').textContent = state.rankOrder.length;
+      updateRankHint();
+    });
+    rankList.appendChild(li);
+  });
+  updateRankHint();
+}
+function updateRankHint() {
+  const left = DIMENSIONS.length - state.rankOrder.length;
+  document.getElementById('rankHint').textContent = left > 0 ? `${left} left to rank` : 'All ranked — weights are set.';
+  document.getElementById('toStep2').disabled = left > 0;
+}
+document.getElementById('back0').addEventListener('click', () => goStep('step-0'));
+document.getElementById('toStep2').addEventListener('click', () => {
+  state.weights = rocWeights(state.rankOrder);
+  goStep('step-2');
+  renderScoring();
+});
+
+// ---------- Step 2: scoring ----------
+const scoringWrap = document.getElementById('scoringWrap');
+function renderScoring() {
+  scoringWrap.innerHTML = '';
+  state.options.forEach(opt => {
+    state.scores[opt] = state.scores[opt] || {};
+    const block = document.createElement('div');
+    block.style.marginBottom = '22px';
+    block.innerHTML = `<h3 style="font-size:16px;margin:0 0 10px;">${opt}</h3>`;
+    DIMENSIONS.forEach(dim => {
+      const row = document.createElement('div');
+      row.className = 'rating-row';
+      row.innerHTML = `<div class="rl"><span>${dim.label}</span><span class="note">${dim.note || ''}</span></div>`;
+      const scale = document.createElement('div');
+      scale.className = 'rating-scale';
+      for (let n = 1; n <= 10; n++) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'rating-btn'; b.textContent = n;
+        b.addEventListener('click', () => {
+          state.scores[opt][dim.key] = n;
+          [...scale.children].forEach(c => c.classList.remove('selected'));
+          b.classList.add('selected');
+          checkScoringComplete();
+        });
+        scale.appendChild(b);
+      }
+      row.appendChild(scale);
+      block.appendChild(row);
+    });
+    scoringWrap.appendChild(block);
+  });
+}
+function checkScoringComplete() {
+  const done = state.options.every(opt => DIMENSIONS.every(d => state.scores[opt][d.key] !== undefined));
+  document.getElementById('toStep3').disabled = !done;
+}
+document.getElementById('back1').addEventListener('click', () => goStep('step-1'));
+document.getElementById('toStep3').addEventListener('click', () => goStep('step-3'));
+document.getElementById('back2').addEventListener('click', () => goStep('step-2'));
+
+// ---------- Step 3 -> build ----------
+document.getElementById('buildReport').addEventListener('click', async () => {
+  state.goal = document.getElementById('goalText').value.trim();
+  state.gut = document.getElementById('gutText').value.trim();
+  state.fear = document.getElementById('fearText').value.trim();
+
+  goStep('step-loading');
+
+  const rankedScores = weightedSum(state.scores, state.weights);
+  const allText = [state.goal, state.gut, state.fear].join(' ');
+  const biasHits = detectBiases(allText);
+  const simulation = monteCarloSensitivity(state.scores, state.weights);
+
+  let ai = null;
+  try {
+    const res = await fetch('/api/ai-insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        decisionContext: { decision: state.decision, options: state.options },
+        goalAndTimeline: state.goal,
+        gutFeel: state.gut,
+        biggestFear: state.fear,
+        rankedScores, biasHits, simulation,
+      }),
+    });
+    if (res.ok) ai = await res.json();
+  } catch (e) { /* graceful fallback below */ }
+
+  renderReport({ rankedScores, biasHits, simulation, ai });
+  goStep('step-report');
+});
+
+const MASCOT_LINES = {
+  'step-0': "Hey — I'm Ledger, your decision co-pilot. Let's get specific about what you're actually choosing between.",
+  'step-1': "Now rank what matters most to you. This sets the actual weights in the model — no guessing.",
+  'step-2': "Rate each option honestly. I can't fix garbage-in with clever narration later.",
+  'step-3': "Almost there. This context helps me catch bias language you might not notice you're using.",
+  'step-loading': "Crunching the weighted scores, scanning for bias, running 2,000 simulations…",
+  'step-report': "Here's your report — every number on this page is computed, not guessed.",
+};
+
+let loadingInterval = null;
+const LOADING_LINES = [
+  'Running the weighted model…',
+  'Scanning your words for bias patterns…',
+  'Simulating 2,000 possible outcomes…',
+  'Asking the AI to explain the math…',
+];
+
+function goStep(id) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  const bubble = document.getElementById('mascotSpeech');
+  const mascotSvg = document.getElementById('mascotSvg');
+  const gear = document.getElementById('mascotGear');
+  if (bubble && MASCOT_LINES[id]) {
+    bubble.style.opacity = 0;
+    setTimeout(() => { bubble.textContent = MASCOT_LINES[id]; bubble.style.opacity = 1; }, 180);
+  }
+  if (id === 'step-loading') {
+    mascotSvg.classList.add('thinking');
+    gear.style.display = 'block';
+    let i = 0;
+    const line = document.getElementById('loadingLine');
+    clearInterval(loadingInterval);
+    loadingInterval = setInterval(() => {
+      i = (i + 1) % LOADING_LINES.length;
+      line.textContent = LOADING_LINES[i];
+    }, 1400);
+  } else {
+    mascotSvg.classList.remove('thinking');
+    gear.style.display = 'none';
+    clearInterval(loadingInterval);
+  }
+}
+
+// ---------- Report rendering ----------
+const DIM_ICONS = {
+  upside: '🚀', financial: '🛡️', growth: '🌱', stress: '🧘',
+  reversibility: '↩️', alignment: '🧭', regret: '💭',
+};
+
+function renderReport({ rankedScores, biasHits, simulation, ai }) {
+  const optionColors = ['#60a5fa', '#34d399', '#a78bfa', '#f87171'];
+  const fallback = !ai;
+
+  const optionCases = ai?.option_cases || state.options.map(o => ({
+    option: o, strongest_case: '—', hidden_upside: '—', biggest_weakness: '—', best_if_you_value: '—'
+  }));
+
+  const container = document.getElementById('step-report');
+  container.innerHTML = `
+    ${fallback ? `<div class="card accent-red"><p class="body-text">AI narration is unavailable right now — showing the computed numbers directly. All scoring below is real, nothing here is placeholder.</p></div>` : ''}
+
+    <div class="card accent-blue">
+      <div class="section-title" style="color:var(--accent-blue)">1 · The Real Decision</div>
+      <p class="body-text">${ai?.real_decision || `${state.decision} — weighing ${state.options.join(' vs ')}.`}</p>
     </div>
 
-    <div class="form-block">
-      <div class="form-label"><span class="req">1</span> Current headline</div>
-      <input type="text" id="fHeadline" placeholder="e.g. Data Scientist | ML Engineer | Open to Work" />
+    <div class="card accent-green">
+      <div class="section-title" style="color:var(--accent-green)">2 · The Case For Each Option</div>
+      ${optionCases.map(c => `
+        <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border-subtle)">
+          <h3 style="margin:0 0 6px;font-size:16px;">${c.option}</h3>
+          <p class="body-text" style="margin:4px 0"><b>Strongest case:</b> ${c.strongest_case}</p>
+          <p class="body-text" style="margin:4px 0;color:var(--accent-green)"><b>Hidden upside:</b> ${c.hidden_upside}</p>
+          <p class="body-text" style="margin:4px 0;color:var(--accent-red)"><b>Biggest weakness:</b> ${c.biggest_weakness}</p>
+          <p class="hint">Best if you value: ${c.best_if_you_value}</p>
+        </div>`).join('')}
     </div>
 
-    <div class="form-block">
-      <div class="form-label"><span class="req">2</span> About section</div>
-      <textarea id="fAbout" rows="5" placeholder="Paste your About section as it currently reads..."></textarea>
+    <div class="card accent-purple">
+      <div class="section-title" style="color:var(--accent-purple)">3 · Assumption Buster</div>
+      <p class="body-text"><b>Assumptions you may be making:</b></p>
+      <ul class="body-text">${(ai?.assumptions || ['—']).map(a => `<li>${a}</li>`).join('')}</ul>
+      <p class="body-text"><b>Biases detected in your own words:</b></p>
+      ${biasHits.length ? biasHits.slice(0,2).map(b => `<p class="body-text" style="color:var(--accent-purple)">${b.label} — evidence: <i>"${b.evidence[0]}"</i></p>`).join('') : `<p class="hint">No strong bias-language matches found in what you wrote — that's a good sign, not a null result.</p>`}
+      <p class="body-text"><b>What you're likely ignoring:</b> ${ai?.ignored_thing || '—'}</p>
     </div>
 
-    <div class="form-block">
-      <div class="form-label"><span class="req">3</span> Most recent experience entry</div>
-      <textarea id="fExperience" rows="5" placeholder="Title, company, and the bullet points describing what you did..."></textarea>
-      <div class="form-hint">One bullet per line works best — that's what the scoring below reads most accurately.</div>
-    </div>
-
-    <div class="form-block">
-      <div class="form-label"><span class="req">4</span> Top skills (5-10)</div>
-      <input type="text" id="fSkills" placeholder="e.g. Python, SQL, Machine Learning, AWS, Data Visualization" />
-    </div>
-
-    <div class="form-block">
-      <div class="form-label"><span class="req">5</span> Target goal</div>
-      <input type="text" id="fGoal" placeholder="e.g. Landing a remote junior DS/ML role in fintech" />
-    </div>
-
-    <div class="form-block">
-      <div class="form-label"><span class="opt">Optional — paste a target job description for keyword-match scoring</span></div>
-      <textarea id="fJD" rows="5" placeholder="Paste a real job posting you're aiming for. We'll score your profile's keyword overlap against it."></textarea>
-    </div>
-
-    <button class="btn btn-block" id="submitIntake">
-      Roast my profile
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-    </button>
-  </section>
-
-  <!-- SCREEN: CLARIFY -->
-  <section class="screen" id="screen-clarify">
-    <div class="clarify-wrap">
-      <div class="kicker">One more thing</div>
-      <h2 style="font-family:var(--font-display); font-weight:700; font-size:24px; margin-bottom:24px;">Before I roast this properly</h2>
-      <div id="clarifyQuestions"></div>
-      <button class="btn btn-block" id="submitClarify">
-        Generate my roast
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </button>
-    </div>
-  </section>
-
-  <!-- SCREEN: LOADING -->
-  <section class="screen" id="screen-loading">
-    <div class="loading-screen">
-      <div class="pen-mark">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#C6203A" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    <div class="card accent-blue">
+      <div class="section-title" style="color:var(--accent-blue)">4 · Decision Matrix (Weighted Sum Model)</div>
+      <p class="hint" style="margin-bottom:14px;">Score = Σ(rating × weight). Weights come from your priority ranking, not a guess.</p>
+      ${DIMENSIONS.map(d => `
+        <div class="matrix-row">
+          <div class="mlabel"><span><span class="dim-icon">${DIM_ICONS[d.key] || ''}</span>${d.label}</span><span>weight ${(state.weights[d.key]*100).toFixed(0)}%</span></div>
+          <div class="bar-track">
+            ${rankedScores.map((r, i) => `<div class="bar-fill" style="background:${optionColors[i]};width:${(r.breakdown[d.key]/10*100/(state.weights[d.key]||1)).toFixed(0)}%;animation-delay:${i*0.1}s">${r.option}: ${(state.scores[r.option][d.key])}</div>`).join('')}
+          </div>
+        </div>`).join('')}
+      <div class="total-row">
+        ${rankedScores.map((r,i) => `<div style="color:${optionColors[i]}">${r.option}: ${r.total.toFixed(2)} / 10</div>`).join('')}
       </div>
-      <div class="loading-text" id="loadingText">Reading your profile…</div>
     </div>
-  </section>
 
-  <!-- SCREEN: ERROR -->
-  <section class="screen" id="screen-error">
-    <div class="loading-screen">
-      <div class="error-box">
-        <p id="errorText"></p>
-        <button class="btn btn-outline" id="retryBtn">Try again</button>
+    <div class="card accent-blue">
+      <div class="section-title" style="color:var(--accent-blue)">Sensitivity — Monte Carlo Robustness Check</div>
+      <p class="body-text">Your ratings aren't perfectly precise, so we ran ${simulation.trials.toLocaleString()} simulations adding realistic noise to every score, and counted how often each option actually comes out ahead.</p>
+      ${Object.entries(simulation.winProbability).map(([o,p]) => `<p class="body-text"><b>${o}</b>: wins in <span style="color:var(--accent-gold)">${(p*100).toFixed(0)}%</span> of simulated scenarios</p>`).join('')}
+    </div>
+
+    <div class="card accent-red">
+      <div class="section-title" style="color:var(--accent-red)">5 · Premortem</div>
+      ${(ai?.premortem || rankedScores.slice(0,2).map(r => ({option:r.option, failure_reasons:['—'], early_warning_sign:'—', prevention_action:'—'}))).map(p => `
+        <div style="margin-bottom:14px;">
+          <h3 style="font-size:15px;margin:0 0 6px;">If ${p.option} fails in 12 months…</h3>
+          <ul class="body-text">${p.failure_reasons.map(r => `<li>${r}</li>`).join('')}</ul>
+          <p class="body-text"><b>Early warning sign:</b> ${p.early_warning_sign}</p>
+          <p class="body-text"><b>Prevention action:</b> ${p.prevention_action}</p>
+        </div>`).join('')}
+    </div>
+
+    <div class="card accent-green">
+      <div class="section-title" style="color:var(--accent-green)">6 · 7-Day Test Plan</div>
+      <p class="body-text"><b>Day 1–2:</b> ${ai?.seven_day_plan?.day1_2 || '—'}</p>
+      <p class="body-text"><b>Day 3–4:</b> ${ai?.seven_day_plan?.day3_4 || '—'}</p>
+      <p class="body-text"><b>Day 5–6:</b> ${ai?.seven_day_plan?.day5_6 || '—'}</p>
+      <p class="body-text"><b>Day 7:</b> ${ai?.seven_day_plan?.day7 || '—'}</p>
+    </div>
+
+    <div class="card accent-gold">
+      <div class="section-title" style="color:var(--accent-gold)">7 · The Verdict</div>
+      <h2 class="verdict-glow" style="font-size:30px;font-weight:800;color:var(--accent-gold);margin:0 0 10px;">🏆 ${simulation.leader}</h2>
+      <p class="body-text">${ai?.verdict?.why_it_wins || `Wins in ${(simulation.winProbability[simulation.leader]*100).toFixed(0)}% of simulated scenarios.`}</p>
+      <p class="body-text"><b>What could flip it:</b> ${ai?.verdict?.what_could_flip_it || '—'}</p>
+      <p class="body-text" style="font-style:italic;color:var(--text-secondary);margin-top:12px;">${ai?.verdict?.hard_truth || ''}</p>
+    </div>
+
+    <div class="card accent-gold">
+      <div class="section-title" style="color:var(--accent-gold)">8 · Shareable</div>
+      <div class="share-row">
+        <div class="mini-card">
+          <b>Matrix Summary</b>
+          ${rankedScores.map(r => `<div>${r.option}: ${r.total.toFixed(1)}/10</div>`).join('')}
+          <div class="watermark">Built with Claude AI</div>
+        </div>
+        <div class="mini-card">
+          <b>Verdict</b>
+          <div style="color:var(--accent-gold);font-weight:700;margin:6px 0;">${simulation.leader}</div>
+          <div>${ai?.verdict?.why_it_wins ? ai.verdict.why_it_wins.split('.')[0] + '.' : `Wins ${(simulation.winProbability[simulation.leader]*100).toFixed(0)}% of scenarios`}</div>
+          <div class="watermark">Built with Claude AI</div>
+        </div>
+        <div class="mini-card">
+          <b>${ai?.linkedin_hook || 'I let a decision engine settle this.'}</b>
+          <div style="margin-top:6px;">${ai?.linkedin_caption || ''}</div>
+          <div class="watermark">Built with Claude AI · ABTalks 60-Day Challenge</div>
+        </div>
       </div>
     </div>
-  </section>
-
-</main>
-
-<!-- SCREEN: REPORT (wide) -->
-<section class="screen" id="screen-report">
-  <main class="wide">
-    <div class="report-header">
-      <div class="kicker" id="reportKicker">Profile Report</div>
-      <h2>Here's what's actually happening with your profile.</h2>
-      <div class="report-actions" id="reportTabs"></div>
-    </div>
-
-    <div id="reportBody"></div>
-  </main>
-</section>
-
-<footer>The Profile Roast — built for the 60-Day Claude AI Mastery Challenge</footer>
-
-<script src="text-analysis.js"></script>
-<script src="app.js"></script>
+  `;
+}
+</script>
 </body>
 </html>
